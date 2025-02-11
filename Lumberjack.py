@@ -17,8 +17,8 @@ def extract_text_from_image(image_path):
 
 def extract_accession_numbers(text):
     """Extract valid accession numbers from text using regex."""
-    # Match single letter + 5 digits OR two letters + 6 digits
-    accession_pattern = r'\b[A-Za-z]{1}\d{5}\b|\b[A-Za-z]{2}\d{6}\b'
+    # Regex pattern to match GenBank accession number formats (RefSeq, Genomic, mRNA, etc.)
+    accession_pattern = r'\b([A-Za-z]{2,4}_?\d{6,9}[A-Za-z]?)\b'  # This matches most common GenBank formats
     return re.findall(accession_pattern, text)
 
 def validate_accession_number(accession_number):
