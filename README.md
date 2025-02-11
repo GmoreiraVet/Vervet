@@ -21,3 +21,21 @@ You can install these dependencies by running the following command:
 
 ```bash
 pip install easyocr biopython requests pillow
+```
+
+# Citation
+If you use this code in your work, please cite it using the following information:
+```
+cff-version: 1.2.0
+message: "If you use this code in your work, please cite it using the following information."
+authors:
+  - name: "Guilherme Moreira"
+    orcid: "https://orcid.org/0009-0002-2828-7202"
+    affiliation: "ICBAS - Instituto de Ciências Biomédicas Abel Salazar"
+title: "Lumberjack"
+version: "1.0.0"
+doi: "https://doi.org/10.5281/zenodo.14850245"
+date-released: 2025-02-11
+repository: "https://github.com/GmoreiraVet/Lumberjack"
+```
+The DOI for citing this work is: 10.5281/zenodo.14850245.
