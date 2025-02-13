@@ -15,11 +15,26 @@ def extract_text_from_image(image_path):
         print(f"Error extracting text from image: {str(e)}")
         return None
 
-def extract_accession_numbers(text):
-    """Extract valid accession numbers from text using regex."""
-    # Regex pattern to match GenBank accession number formats (RefSeq, Genomic, mRNA, etc.)
-    accession_pattern = r'\b([A-Za-z]{2,4}_?\d{6,9}[A-Za-z]?)\b'  # This matches most common GenBank formats
-    return re.findall(accession_pattern, text)
+def adjust_and_validate_accession_numbers(text):
+    """Correct misread characters and validate potential accession numbers."""
+    # Extract possible 8-character sequences
+    potential_accessions = re.findall(r'\b\w{8}\b', text)
+    adjusted_accessions = []
+    valid_accessions = []
+    
+    for acc in potential_accessions:
+        # Correct possible misinterpretations
+        first_part = re.sub(r'0', 'O', acc[:2])  # Convert '0' to 'O' in the first two characters
+        second_part = re.sub(r'O', '0', acc[2:])  # Convert 'O' to '0' in the last six characters
+        
+        adjusted_acc = first_part + second_part
+        adjusted_accessions.append(adjusted_acc)
+        
+        # Validate format (2 letters followed by 6 digits)
+        if re.match(r'^[A-Z]{2}\d{6}$', adjusted_acc, re.IGNORECASE):
+            valid_accessions.append(adjusted_acc)
+    
+    return adjusted_accessions, valid_accessions
 
 def validate_accession_number(accession_number):
     """Check if the accession number exists in GenBank."""
@@ -27,10 +42,7 @@ def validate_accession_number(accession_number):
         handle = Entrez.esearch(db="nucleotide", term=accession_number, retmax=1)
         record = Entrez.read(handle)
         handle.close()
-        # If no results are returned, it's an invalid accession number
-        if record['Count'] == '0':
-            return False
-        return True
+        return record['Count'] != '0'
     except Exception as e:
         print(f"Error validating accession number {accession_number}: {str(e)}")
         return False
@@ -43,14 +55,12 @@ def fetch_fasta_from_genbank(accession_numbers):
     failed_accessions = []
     
     for acc_num in accession_numbers:
-        # Validate the accession number before fetching data
         if not validate_accession_number(acc_num):
             print(f"Invalid accession number: {acc_num}. Skipping.")
             failed_accessions.append(acc_num)
             continue
         
         try:
-            # Query GenBank for the accession number
             handle = Entrez.efetch(db="nucleotide", id=acc_num, rettype="fasta", retmode="text")
             fasta_data = handle.read()
             sequences.append(fasta_data)
@@ -72,11 +82,9 @@ def save_fasta(sequences, output_file):
         print(f"Error saving FASTA file: {str(e)}")
 
 def main():
-    # Input paths
     image_path = input("Enter the path to the image file (e.g., image.jpg, image.png): ")
     output_fasta_path = input("Enter the output FASTA file path (e.g., output.fasta): ")
 
-    # Extract text from the image
     print("Extracting text from the image...")
     text = extract_text_from_image(image_path)
     
@@ -84,27 +92,22 @@ def main():
         print("Failed to extract text from the image.")
         return
 
-    # Extract accession numbers from the text
-    print("Extracting accession numbers from the text...")
-    accession_numbers = extract_accession_numbers(text)
-
-    if not accession_numbers:
-        print("No accession numbers found in the image.")
+    print("Adjusting and validating accession numbers...")
+    _, valid_accessions = adjust_and_validate_accession_numbers(text)
+    
+    if not valid_accessions:
+        print("No valid accession numbers found in the image.")
         return
 
-    print(f"Found accession numbers: {accession_numbers}")
-
-    # Fetch sequences from GenBank
+    print(f"Found valid accession numbers: {valid_accessions}")
     print("Fetching sequences from GenBank...")
-    sequences, failed_accessions = fetch_fasta_from_genbank(accession_numbers)
-
+    sequences, failed_accessions = fetch_fasta_from_genbank(valid_accessions)
+    
     if sequences:
-        # Save the fetched sequences to a FASTA file
         save_fasta(sequences, output_fasta_path)
     else:
         print("No sequences were successfully fetched.")
-
-    # Report failed accessions
+    
     if failed_accessions:
         print(f"Failed to fetch the following accession numbers: {failed_accessions}")
 
