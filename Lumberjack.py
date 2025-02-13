@@ -17,21 +17,21 @@ def extract_text_from_image(image_path):
 
 def adjust_and_validate_accession_numbers(text):
     """Correct misread characters and validate potential accession numbers."""
-    # Extract possible accession numbers (8-character or 6-character sequences)
-    potential_accessions = re.findall(r'\b[A-Z]{1,2}\d{5,6}\b', text)
+    # Extract possible accession numbers (1 letter + 5 digits OR 2 letters + 6 digits)
+    potential_accessions = re.findall(r'\b[a-zA-Z]{1,2}\d{5,6}\b', text)
     adjusted_accessions = []
     valid_accessions = []
     
     for acc in potential_accessions:
         # Correct possible misinterpretations
-        first_part = re.sub(r'0', 'O', acc[:2])  # Convert '0' to 'O' in the first two characters
-        second_part = re.sub(r'O', '0', acc[2:])  # Convert 'O' to '0' in the last part
+        first_part = re.sub(r'0', 'O', acc[:2], flags=re.IGNORECASE)  # Convert '0' to 'O' in first two characters
+        second_part = re.sub(r'O', '0', acc[2:], flags=re.IGNORECASE)  # Convert 'O' to '0' in the rest
         
         adjusted_acc = first_part + second_part
         adjusted_accessions.append(adjusted_acc)
         
         # Validate format: either 1 letter + 5 digits OR 2 letters + 6 digits
-        if re.match(r'^[A-Z]{1}\d{5}$', adjusted_acc, re.IGNORECASE) or re.match(r'^[A-Z]{2}\d{6}$', adjusted_acc, re.IGNORECASE):
+        if re.match(r'^[A-Za-z]{1}\d{5}$', adjusted_acc) or re.match(r'^[A-Za-z]{2}\d{6}$', adjusted_acc):
             valid_accessions.append(adjusted_acc)
     
     return adjusted_accessions, valid_accessions
@@ -99,7 +99,7 @@ def main():
         print("No valid accession numbers found in the image.")
         return
 
-    print(f"Found valid accession numbers: {valid_accessions}")
+    print(f"Detected {len(valid_accessions)} accession numbers: {valid_accessions}")
     print("Fetching sequences from GenBank...")
     sequences, failed_accessions = fetch_fasta_from_genbank(valid_accessions)
     
