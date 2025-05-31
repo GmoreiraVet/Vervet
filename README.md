@@ -1,12 +1,13 @@
 # Image to GenBank FASTA Downloader
 ![plot](Untitled-1.png)
 
-This script extracts accession numbers from an image using Optical Character Recognition (OCR) with EasyOCR, validates them, and then fetches the corresponding sequences from GenBank. It saves the sequences to a FASTA file.
+Vervet extracts accession numbers from an image using Optical Character Recognition (OCR) with EasyOCR, validates them, and then fetches the corresponding sequences from GenBank. It saves the sequences to a FASTA file.
 
 ## Features:
 - Extracts text from an image (e.g., `.jpg`, `.png`) containing accession numbers.
 - Uses EasyOCR to perform OCR and extract accession numbers.
 - Validates accession numbers to check if they exist in GenBank.
+- Substitutes commonly misinterpreted characters when a candidate accession number doesn´t exist in genbank
 - Fetches the corresponding sequences from GenBank using the Biopython library.
 - Saves the fetched sequences in a FASTA format file.
 
