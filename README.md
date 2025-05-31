@@ -1,4 +1,5 @@
 # Image to GenBank FASTA Downloader
+![plot](Untitled-1.png)
 
 This script extracts accession numbers from an image using Optical Character Recognition (OCR) with EasyOCR, validates them, and then fetches the corresponding sequences from GenBank. It saves the sequences to a FASTA file.
 
