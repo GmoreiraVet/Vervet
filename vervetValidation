@@ -1,0 +1,83 @@
+def main():
+    image_path = input("Enter path to image file (e.g., image.jpg): ").strip()
+    output_fasta_path = input("Enter output FASTA file path (e.g., output.fasta): ").strip()
+
+    if not os.path.exists(image_path):
+        logging.error(f"Image file not found: {image_path}")
+        return
+
+    ocr_results = extract_text_with_boxes(image_path)
+    draw_ocr_boxes(image_path, ocr_results)
+    lines = save_raw_text(ocr_results)
+
+    # Count total tokens (words) from OCR
+    all_tokens = [token for line in lines for token in re.findall(r'\w+', line)]
+    total_token_count = len(all_tokens)
+
+    valid_accessions, unresolved_tokens = find_valid_accessions(lines)
+
+    logging.info(f"✅ Vervet successfully identified {len(valid_accessions)} valid accession number(s).")
+    logging.info(f"🔎 {len(unresolved_tokens)} token(s) could not be automatically resolved.")
+
+    if unresolved_tokens:
+        response = input(
+            f"\n{len(unresolved_tokens)} potential accession number candidates could not be automatically resolved.\n"
+            "Would you like to review and attempt to correct them manually? (yes/no): "
+        ).strip().lower()
+        if response in ("yes", "y"):
+            manual_review(unresolved_tokens, valid_accessions)
+        else:
+            logging.info("Manual review skipped by user.")
+
+    fetch_and_save_sequences(valid_accessions, output_fasta_path)
+
+    monkey_art = r"""
+                    %%%%%%%%%%                                
+                  %%%%%%%%%%%%%%                              
+                 %%%%%%%%%%%%%%%%%%%                          
+                %%%          %%%%%%%%                         
+                %%% %%   %%%  %%%%%%%                         
+                %%%         %%%%%%%%%                         
+                 %%% % %   %%%%%%%%%%%%%                      
+                 %%%       %%%%%%%%%%%%%%%%                   
+                 %%%       %%%%%%%%%%%%%%%%%%                 
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%               
+%%%       %%%        %%%%%%%%%%%%%%%%%%%%%%%%%%%%             
+%%%       %%%          %%%%%%%%%%%%%%%%%%%%%%%%%%%            
+%%%       %%%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+%%%       %%%        %%%%%%%%%%%%%%%%%% %%%%%%%%%%%           
+%%%%    %%%%%       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+ %%%%%%%%%%       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+   %%%%%%      %%%%%%%%%%%%%   %% %%%%%%%%%%%%%%%%%%%         
+    %%%%     %%%%%%%%%%%%%        %%%%%%%%%%%%%%%%%%          
+    %%%%   %%%%%%%%%%%            %%%%%%%%%%%%%%%%%%       %%%
+    %%%%   %%%%%                  %%%%%%%%%%%%%%%%%%%      %%%
+    %%%%   %%%%%             %%%%%%%%%%%%%%%%%%%%%%%%%     %%%
+    %%%%    %%%%            %%%%%%%%%%%%%%%%%%%%% %%%%%%   %%%
+     %%%%    %%%           %%%%                     %%%%%%%%%%
+      %%%%%  %%%           %%%%                      %%%%%%%  
+        %%%%%%%%%%%%%%%%%%%%%%%                       %%%%    
+          %%%%%%%%%%%%%%%%%%%%%           %%%%%%%%%%%%%%%%    
+                           %%%%         %%%%%%%%%%%%%%%%%%%   
+    %%%        %%          %%%%       %%%%             %%%%   
+    %%%       %%%          %%%%     %%%%%             %%%%    
+    %%%       %%%          %%%    %%%%%              %%%%%    
+    %%%       %%%          %%%  %%%%%                %%%%     
+    %%%%      %%%          %%%%%%%%                %%%%%      
+      %%%%    %%%          %%%%%%     %%%%      %%%%%%%       
+       %%%%%%%%%%%         %%%%       %%%%%%%%%%%%%%%         
+               %%%%%       %%%         %%%%%%%%%%             
+                 %%%%%     %%%                                
+                   %%%%%   %%%                           %%%  
+                     %%%%% %%% %%%%%% %%%%%%%  %%%%%%%%% %%%% 
+                       %%%%%%% %%%%%%%%%%  %% %%%%%%%%%%%%%%  
+                         %%%%%%%%   % %%%   %%%% %%%   % %%%  
+                           %%%  %%%%% %%%    %%   %%%%%%  %%% 
+
+    """
+
+    print(monkey_art)
+    print(
+        f"\n🎉 Success! {len(valid_accessions)} accession sequence(s) saved to '{output_fasta_path}'.\n"
+        f"📊 Accession hits: {len(valid_accessions)} / {total_token_count} total detected word-like tokens.\n"
+    )
