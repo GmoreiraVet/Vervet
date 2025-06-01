@@ -8,9 +8,11 @@ from Bio import Entrez, SeqIO
 from itertools import product
 from io import StringIO
 
+# Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-Entrez.email = "your_email@example.com"  # Replace with your email
+Entrez.email = "your_email@example.com"  # Replace with your actual email
 
+# Substitution dictionary for OCR error correction
 SUBSTITUTIONS = {
     'O': ['O', '0'],
     '0': ['O', '0'],
@@ -36,6 +38,8 @@ SUBSTITUTIONS = {
 
 ACCESSION_PATTERN = re.compile(r'^[A-Z]{1,2}\d{5,6}(\.\d+)?$')
 CANDIDATE_PATTERN = re.compile(r'^[A-Z]{1,2}[A-Z0-9]{4,7}\d$')
+
+VALID_START_CHARS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789O0I1S5B8A4T7G6Z2E3K4')
 
 def extract_text_with_boxes(image_path):
     reader = Reader(['en'], gpu=False)
@@ -88,7 +92,6 @@ def find_valid_accessions(text_lines):
             upper_token = token.upper()
             if upper_token in valid_accessions or upper_token in unresolved_tokens:
                 continue
-            # Relaxed initial filter: must have at least 1 letter and be at least 6 chars long
             if len(upper_token) < 6 or not re.search(r'[A-Z]', upper_token):
                 continue
             variants = generate_variants(upper_token)
@@ -105,6 +108,18 @@ def find_valid_accessions(text_lines):
                     break
             if not found:
                 unresolved_tokens[upper_token] = variants
+
+    # Filter unresolved tokens: only keep those that
+    # - match candidate pattern,
+    # - start with allowed chars,
+    # - and have at least one variant suggestion
+    unresolved_tokens = {
+        tok: vars for tok, vars in unresolved_tokens.items()
+        if CANDIDATE_PATTERN.fullmatch(tok)
+        and tok[0] in VALID_START_CHARS
+        and len(vars) > 0
+    }
+
     return valid_accessions, unresolved_tokens
 
 def manual_review(unresolved_tokens, valid_accessions):
@@ -157,7 +172,20 @@ def main():
     lines = save_raw_text(ocr_results)
 
     valid_accessions, unresolved_tokens = find_valid_accessions(lines)
-    manual_review(unresolved_tokens, valid_accessions)
+
+    logging.info(f"✅ Vervet successfully identified {len(valid_accessions)} valid accession number(s).")
+    logging.info(f"🔎 {len(unresolved_tokens)} token(s) could not be automatically resolved.")
+
+    if unresolved_tokens:
+        response = input(
+            f"\n{len(unresolved_tokens)} potential accession number candidates could not be automatically resolved.\n"
+            "Would you like to review and attempt to correct them manually? (yes/no): "
+        ).strip().lower()
+        if response in ("yes", "y"):
+            manual_review(unresolved_tokens, valid_accessions)
+        else:
+            logging.info("Manual review skipped by user.")
+
     fetch_and_save_sequences(valid_accessions, output_fasta_path)
 
 if __name__ == "__main__":
