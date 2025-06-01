@@ -36,6 +36,7 @@ SUBSTITUTIONS = {
     'K': ['K', '4'],
 }
 
+# Pattern to match valid accession numbers with optional version suffix
 ACCESSION_PATTERN = re.compile(r'^[A-Z]{1,2}\d{5,6}(\.\d+)?$')
 
 def extract_text_with_boxes(image_path):
@@ -65,6 +66,7 @@ def generate_variants(word):
     word = word.upper()
     options = [SUBSTITUTIONS.get(c, [c]) for c in word]
     variants = [''.join(p) for p in product(*options)]
+    # Keep only variants matching accession pattern
     return [v for v in variants if ACCESSION_PATTERN.fullmatch(v)]
 
 def is_accession_valid(acc):
@@ -77,6 +79,15 @@ def is_accession_valid(acc):
         logging.debug(f"Entrez fetch failed for {acc}: {e}")
         return None
 
+def tokenize_line(line):
+    # Split line by whitespace and hyphen as separators
+    tokens = []
+    for token in re.split(r'[\s\-]+', line):
+        token = token.strip()
+        if token:
+            tokens.append(token)
+    return tokens
+
 def find_valid_accessions(text_lines):
     logging.info("Generating and validating accession numbers...")
     valid_accessions = {}
@@ -85,20 +96,25 @@ def find_valid_accessions(text_lines):
     total_tokens = 0
 
     for line in text_lines:
-        # Split tokens by non-word characters and hyphen
-        tokens = re.split(r'[\W\-]+', line)
-        tokens = [t for t in tokens if t]  # remove empty tokens
-
+        tokens = tokenize_line(line)
         total_tokens += len(tokens)
         for token in tokens:
             upper_token = token.upper()
             if upper_token in valid_accessions or upper_token in unresolved_tokens:
                 continue
-            if len(upper_token) < 6 or not re.search(r'[A-Z]', upper_token):
+
+            # Strip optional version suffix for length check
+            token_no_ver = upper_token.split('.')[0]
+
+            # Filter tokens by length typical for accession numbers (7 or 8 chars)
+            if len(token_no_ver) not in (7, 8):
                 continue
+
+            # Generate substitution variants only for tokens with valid length
             variants = generate_variants(upper_token)
             if not variants:
-                continue  # skip tokens with no valid variants
+                continue  # no valid variants found
+
             found = False
             for variant in variants:
                 if variant in tested:
