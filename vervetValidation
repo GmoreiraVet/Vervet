@@ -181,6 +181,10 @@ def main():
 
     valid_accessions, unresolved_tokens, total_tokens = find_valid_accessions(lines)
 
+    # New console message about total tokens and valid accessions found
+    print(f"\nDetected {total_tokens} token(s) from OCR text.")
+    print(f"Found {len(valid_accessions)} valid accession number(s) out of these tokens.")
+
     logging.info(f"✅ Vervet successfully identified {len(valid_accessions)} valid accession number(s).")
     logging.info(f"🔎 {len(unresolved_tokens)} token(s) could not be automatically resolved.")
 
