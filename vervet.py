@@ -23,7 +23,7 @@ SUBSTITUTIONS = {
     'B': ['B', '8'],
     '8': ['B', '8'],
     'A': ['A', '4'],
-    '4': ['A', '4'],
+    '4': ['A', '4', 'K'],
     'T': ['T', '7'],
     '7': ['T', '7'],
     'G': ['G', '6'],
@@ -33,13 +33,10 @@ SUBSTITUTIONS = {
     'E': ['E', '3'],
     '3': ['E', '3'],
     'K': ['K', '4'],
-    '4': ['4', 'K'],
 }
 
 ACCESSION_PATTERN = re.compile(r'^[A-Z]{1,2}\d{5,6}(\.\d+)?$')
-CANDIDATE_PATTERN = re.compile(r'^[A-Z]{1,2}[A-Z0-9]{4,7}\d$')
-
-VALID_START_CHARS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789O0I1S5B8A4T7G6Z2E3K4')
+CANDIDATE_PATTERN = re.compile(r'^[A-Z0-9]{2,}[0-9]$')
 
 def extract_text_with_boxes(image_path):
     reader = Reader(['en'], gpu=False)
@@ -95,6 +92,8 @@ def find_valid_accessions(text_lines):
             if len(upper_token) < 6 or not re.search(r'[A-Z]', upper_token):
                 continue
             variants = generate_variants(upper_token)
+            if not variants:
+                continue  # skip tokens with no valid variants
             found = False
             for variant in variants:
                 if variant in tested:
@@ -108,24 +107,15 @@ def find_valid_accessions(text_lines):
                     break
             if not found:
                 unresolved_tokens[upper_token] = variants
-
-    # Filter unresolved tokens: only keep those that
-    # - match candidate pattern,
-    # - start with allowed chars,
-    # - and have at least one variant suggestion
-    unresolved_tokens = {
-        tok: vars for tok, vars in unresolved_tokens.items()
-        if CANDIDATE_PATTERN.fullmatch(tok)
-        and tok[0] in VALID_START_CHARS
-        and len(vars) > 0
-    }
-
     return valid_accessions, unresolved_tokens
 
 def manual_review(unresolved_tokens, valid_accessions):
     logging.info("Manual review of unresolved accession numbers:")
     for token, variants in unresolved_tokens.items():
+        # Only flag tokens starting with letters that can be confused with numbers or numbers
         if not CANDIDATE_PATTERN.fullmatch(token):
+            continue
+        if not variants:
             continue
         print(f"\nUnresolved token: {token}")
         print("Suggested variants (up to 5):")
@@ -188,5 +178,54 @@ def main():
 
     fetch_and_save_sequences(valid_accessions, output_fasta_path)
 
+    monkey_art = r"""
+                    %%%%%%%%%%                                
+                  %%%%%%%%%%%%%%                              
+                 %%%%%%%%%%%%%%%%%%%                          
+                %%%          %%%%%%%%                         
+                %%% %%   %%%  %%%%%%%                         
+                %%%         %%%%%%%%%                         
+                 %%% % %   %%%%%%%%%%%%%                      
+                 %%%       %%%%%%%%%%%%%%%%                   
+                 %%%       %%%%%%%%%%%%%%%%%%                 
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%               
+%%%       %%%        %%%%%%%%%%%%%%%%%%%%%%%%%%%%             
+%%%       %%%          %%%%%%%%%%%%%%%%%%%%%%%%%%%            
+%%%       %%%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+%%%       %%%        %%%%%%%%%%%%%%%%%% %%%%%%%%%%%           
+%%%%    %%%%%       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+ %%%%%%%%%%       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%          
+   %%%%%%      %%%%%%%%%%%%%   %% %%%%%%%%%%%%%%%%%%%         
+    %%%%     %%%%%%%%%%%%%        %%%%%%%%%%%%%%%%%%          
+    %%%%   %%%%%%%%%%%            %%%%%%%%%%%%%%%%%%       %%%
+    %%%%   %%%%%                  %%%%%%%%%%%%%%%%%%%      %%%
+    %%%%   %%%%%             %%%%%%%%%%%%%%%%%%%%%%%%%     %%%
+    %%%%    %%%%            %%%%%%%%%%%%%%%%%%%%% %%%%%%   %%%
+     %%%%    %%%           %%%%                     %%%%%%%%%%
+      %%%%%  %%%           %%%%                      %%%%%%%  
+        %%%%%%%%%%%%%%%%%%%%%%%                       %%%%    
+          %%%%%%%%%%%%%%%%%%%%%           %%%%%%%%%%%%%%%%    
+                           %%%%         %%%%%%%%%%%%%%%%%%%   
+    %%%        %%          %%%%       %%%%             %%%%   
+    %%%       %%%          %%%%     %%%%%             %%%%    
+    %%%       %%%          %%%    %%%%%              %%%%%    
+    %%%       %%%          %%%  %%%%%                %%%%     
+    %%%%      %%%          %%%%%%%%                %%%%%      
+      %%%%    %%%          %%%%%%     %%%%      %%%%%%%       
+       %%%%%%%%%%%         %%%%       %%%%%%%%%%%%%%%         
+               %%%%%       %%%         %%%%%%%%%%             
+                 %%%%%     %%%                                
+                   %%%%%   %%%                           %%%  
+                     %%%%% %%% %%%%%% %%%%%%%  %%%%%%%%% %%%% 
+                       %%%%%%% %%%%%%%%%%  %% %%%%%%%%%%%%%%  
+                         %%%%%%%%   % %%%   %%%% %%%   % %%%  
+                           %%%  %%%%% %%%    %%   %%%%%%  %%% 
+
+    """
+
+    print(monkey_art)
+    print(f"\n🎉 Success! Saved {len(valid_accessions)} valid accession sequence(s) to '{output_fasta_path}'.\n")
+
 if __name__ == "__main__":
     main()
+
