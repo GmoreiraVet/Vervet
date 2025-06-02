@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun  2 10:50:08 2025
+
+@author: viroicbas2023
+"""
+
 import re
 import os
 import logging
@@ -66,7 +74,6 @@ def generate_variants(word):
     word = word.upper()
     options = [SUBSTITUTIONS.get(c, [c]) for c in word]
     variants = [''.join(p) for p in product(*options)]
-    # Keep only variants matching accession pattern
     return [v for v in variants if ACCESSION_PATTERN.fullmatch(v)]
 
 def is_accession_valid(acc):
@@ -83,7 +90,8 @@ def tokenize_line(line):
     # Split line by whitespace and hyphen as separators
     tokens = []
     for token in re.split(r'[\s\-]+', line):
-        token = token.strip()
+        # Remove surrounding punctuation
+        token = token.strip("()[]{}<>,.:;\"'")
         if token:
             tokens.append(token)
     return tokens
@@ -103,17 +111,13 @@ def find_valid_accessions(text_lines):
             if upper_token in valid_accessions or upper_token in unresolved_tokens:
                 continue
 
-            # Strip optional version suffix for length check
             token_no_ver = upper_token.split('.')[0]
-
-            # Filter tokens by length typical for accession numbers (7 or 8 chars)
             if len(token_no_ver) not in (7, 8):
                 continue
 
-            # Generate substitution variants only for tokens with valid length
             variants = generate_variants(upper_token)
             if not variants:
-                continue  # no valid variants found
+                continue
 
             found = False
             for variant in variants:
@@ -181,7 +185,6 @@ def main():
 
     valid_accessions, unresolved_tokens, total_tokens = find_valid_accessions(lines)
 
-    # New console message about total tokens and valid accessions found
     print(f"\nDetected {total_tokens} token(s) from OCR text.")
     print(f"Found {len(valid_accessions)} valid accession number(s) out of these tokens.")
 
