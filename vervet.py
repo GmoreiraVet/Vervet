@@ -35,6 +35,7 @@ SUBSTITUTIONS = {
     'K': ['K', '4'],
 }
 
+# Candidate pattern detection
 ACCESSION_PATTERN = re.compile(r'^[A-Z]{1,2}\d{5,6}(\.\d+)?$')
 CANDIDATE_PATTERN = re.compile(r'^[A-Z0-9]{2,}[0-9]$')
 
@@ -163,8 +164,8 @@ def main():
 
     valid_accessions, unresolved_tokens = find_valid_accessions(lines)
 
-    logging.info(f"✅ Vervet successfully identified {len(valid_accessions)} valid accession number(s).")
-    logging.info(f"🔎 {len(unresolved_tokens)} token(s) could not be automatically resolved.")
+    logging.info(f" Vervet successfully identified {len(valid_accessions)} valid accession number(s).")
+    logging.info(f" {len(unresolved_tokens)} token(s) could not be automatically resolved.")
 
     if unresolved_tokens:
         response = input(
@@ -177,7 +178,7 @@ def main():
             logging.info("Manual review skipped by user.")
 
     fetch_and_save_sequences(valid_accessions, output_fasta_path)
-
+# Beautiful, artistic, irridiscent macaque
     monkey_art = r"""
                     %%%%%%%%%%                                
                   %%%%%%%%%%%%%%                              
