@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Improved OCR GenBank Accession Extractor
+OCR GenBank Accession Extractor
 """
 
 import re
